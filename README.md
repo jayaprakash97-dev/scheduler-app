@@ -33,7 +33,7 @@ scheduler-app/
 
 ## Tech Stack
 
-- **Backend:** Laravel 10, PHP 8
+- **Backend:** Laravel
 - **Frontend:** React.js, Axios
 - **Database:** MySQL
 
