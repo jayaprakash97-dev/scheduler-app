@@ -9,11 +9,10 @@ class Availability extends Model
 {
     use HasFactory;
 
-        protected $fillable = [
+    protected $fillable = [
         'booking_date',
         'booking_time',
         'name',
         'email'
     ];
-    
 }

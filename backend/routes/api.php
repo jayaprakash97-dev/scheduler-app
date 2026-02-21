@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\SchedulerController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
 Route::get('/slots', [SchedulerController::class, 'getSlots']);
 Route::post('/book', [SchedulerController::class, 'bookSlot']);
 

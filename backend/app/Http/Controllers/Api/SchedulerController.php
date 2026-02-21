@@ -10,90 +10,105 @@ use Carbon\Carbon;
 
 class SchedulerController extends Controller
 {
-    public function getSlots(Request $request)
-    {
-        $request->validate([
-            'date' => 'required|date'
-        ]);
+public function getSlots(Request $request)
+{
+    $date = $request->date;
 
-        $date = $request->date;
+    $availability = Availability::where('date', $date)->first();
 
-        $availability = Availability::where('date', $date)->first();
-
-        if (!$availability) {
-            return response()->json(['slots' => []]);
-        }
-
-        $start = Carbon::parse($availability->start_time);
-        $end = Carbon::parse($availability->end_time);
-
-        $slots = [];
-
-        while ($start < $end) {
-            $slots[] = $start->format('H:i');
-            $start->addHour();
-        }
-
-        $booked = Booking::where('booking_date', $date)
-            ->pluck('booking_time')
-            ->toArray();
-
-        $availableSlots = array_values(array_diff($slots, $booked));
-
+    if (!$availability) {
         return response()->json([
-            'slots' => $availableSlots
-        ]);
+            'success' => false,
+            'message' => 'No availability found for selected date',
+            'slots' => []
+        ], 404);
     }
 
-    public function bookSlot(Request $request)
-    {
-        $request->validate([
-            'booking_date' => 'required|date',
-            'booking_time' => 'required',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255'
-        ]);
+    $start = \Carbon\Carbon::parse($availability->start_time);
+    $end = \Carbon\Carbon::parse($availability->end_time);
 
-        $date = $request->booking_date;
-        $time = $request->booking_time;
+    $slotDuration = 30;
 
-        $availability = Availability::where('date', $date)->first();
+    $bookedSlots = Booking::where('booking_date', $date)
+        ->get(['start_time', 'end_time'])
+        ->toArray();
 
-        if (!$availability) {
-            return response()->json([
-                'message' => 'No availability for selected date'
-            ], 400);
-        }
+    $slots = [];
 
-        $start = \Carbon\Carbon::parse($availability->start_time);
-        $end = \Carbon\Carbon::parse($availability->end_time);
-        $selectedTime = \Carbon\Carbon::parse($time);
+    while ($start->copy()->addMinutes($slotDuration) <= $end) {
 
-        if ($selectedTime->lt($start) || $selectedTime->gte($end)) {
-            return response()->json([
-                'message' => 'Selected time is outside availability'
-            ], 400);
-        }
+        $slotStart = $start->copy();
+        $slotEnd = $start->copy()->addMinutes($slotDuration);
 
-        $alreadyBooked = Booking::where('booking_date', $date)
-            ->where('booking_time', $time)
-            ->exists();
+        $isBooked = collect($bookedSlots)->contains(function ($booking) use ($slotStart, $slotEnd) {
+            return $booking['start_time'] === $slotStart->format('H:i:s') &&
+                   $booking['end_time'] === $slotEnd->format('H:i:s');
+        });
 
-        if ($alreadyBooked) {
-            return response()->json([
-                'message' => 'Slot already booked'
-            ], 400);
-        }
+        $slots[] = [
+            'start' => $slotStart->format('H:i'),
+            'end' => $slotEnd->format('H:i'),
+            'available' => !$isBooked
+        ];
 
-        Booking::create([
-            'booking_date' => $date,
-            'booking_time' => $time,
-            'name' => $request->name,
-            'email' => $request->email
-        ]);
-
-        return response()->json([
-            'message' => 'Booking confirmed successfully'
-        ], 201);
+        $start->addMinutes($slotDuration);
     }
+
+    return response()->json([
+        'success' => true,
+        'slots' => $slots
+    ]);
+}
+
+public function bookSlot(Request $request)
+{
+    $request->validate([
+        'booking_date' => 'required|date',
+        'start_time'   => 'required',
+        'end_time'     => 'required',
+        'name'         => 'required|string|max:255',
+        'email'        => 'required|email|max:255'
+    ]);
+
+    $date = $request->booking_date;
+    $startTime = $request->start_time;
+    $endTime = $request->end_time;
+
+    $availability = Availability::where('date', $date)->first();
+
+    if (!$availability) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No availability for selected date'
+        ], 404);
+    }
+
+    $alreadyBooked = Booking::where('booking_date', $date)
+        ->where('start_time', $startTime)
+        ->where('end_time', $endTime)
+        ->exists();
+
+    if ($alreadyBooked) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Slot already booked'
+        ], 400);
+    }
+
+    Booking::create([
+        'availability_id' => $availability->id,
+        'booking_date' => $date,
+        'start_time' => $startTime,
+        'end_time' => $endTime,
+        'name' => $request->name,
+        'email' => $request->email
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Booking confirmed successfully'
+    ], 201);
+}
+
+
 }

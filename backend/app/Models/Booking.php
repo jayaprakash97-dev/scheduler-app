@@ -10,10 +10,11 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
-    'booking_date',
-    'booking_time',
-    'name',
-    'email'
-];
-
+        'availability_id',
+        'booking_date',
+        'start_time',
+        'end_time',
+        'name',
+        'email'
+    ];
 }

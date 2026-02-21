@@ -15,13 +15,22 @@ class CreateBookingsTable extends Migration
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('availability_id')
+                ->constrained()
+                ->cascadeOnDelete();
+
             $table->date('booking_date');
-            $table->time('booking_time');
+
+            $table->time('start_time');
+            $table->time('end_time');
+
             $table->string('name');
             $table->string('email');
+
             $table->timestamps();
 
-            $table->unique(['booking_date', 'booking_time']);
+            $table->unique(['booking_date', 'start_time', 'end_time']);
         });
     }
 
