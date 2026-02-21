@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\SchedulerController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+Route::get('/slots', [SchedulerController::class, 'getSlots']);
+Route::post('/book', [SchedulerController::class, 'bookSlot']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
