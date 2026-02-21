@@ -1,8 +1,25 @@
 import React, { useState } from "react";
 import axios from "axios";
 import "./App.css";
+import AdminAvailability from "./AdminAvailability";
 
 function App() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  return (
+    <div>
+      <button onClick={() => setIsAdmin(!isAdmin)}>
+        {isAdmin ? "Go to User Booking" : "Go to Admin"}
+      </button>
+
+      {isAdmin ? <AdminAvailability /> : (
+        <UserBooking />
+      )}
+    </div>
+  );
+}
+
+function UserBooking() {
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -21,7 +38,6 @@ function App() {
       const res = await axios.get(
         `http://127.0.0.1:8000/api/slots?date=${selectedDate}`
       );
-
       setSlots(res.data.slots);
     } catch (error) {
       setMessageType("error");
@@ -35,16 +51,13 @@ function App() {
 
   const handleBooking = async (e) => {
     e.preventDefault();
-
     if (!selectedSlot) {
       setMessageType("error");
       setMessage("Please select a slot.");
       return;
     }
-
     try {
       setLoading(true);
-
       await axios.post("http://127.0.0.1:8000/api/book", {
         booking_date: date,
         start_time: selectedSlot.start,
@@ -52,31 +65,20 @@ function App() {
         name,
         email,
       });
-
       await fetchSlots(date);
-
       setMessageType("success");
       setMessage("Booking confirmed successfully!");
-
       setSelectedSlot(null);
       setName("");
       setEmail("");
-
       setTimeout(() => {
         setMessage("");
         setMessageType("");
       }, 4000);
-
     } catch (error) {
       setMessageType("error");
-      setMessage(
-        error.response?.data?.message || "Something went wrong"
-      );
-
-      setTimeout(() => {
-        setMessage("");
-        setMessageType("");
-      }, 4000);
+      setMessage(error.response?.data?.message || "Something went wrong");
+      setTimeout(() => setMessage(""), 4000);
     } finally {
       setLoading(false);
     }
@@ -105,8 +107,9 @@ function App() {
               <button
                 key={index}
                 disabled={!slot.available}
-                className={`slot-btn ${selectedSlot?.start === slot.start ? "selected" : ""
-                  } ${!slot.available ? "disabled" : ""}`}
+                className={`slot-btn ${
+                  selectedSlot?.start === slot.start ? "selected" : ""
+                } ${!slot.available ? "disabled" : ""}`}
                 onClick={() => {
                   if (slot.available) {
                     setSelectedSlot(slot);
